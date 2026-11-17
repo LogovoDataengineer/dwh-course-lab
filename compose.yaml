@@ -20,7 +20,8 @@ services:
   postgres:
     image: postgres:17-alpine
     # wal_level=logical нужен Debezium (урок 17)
-    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=4", "-c", "max_replication_slots=4"]
+    # pg_stat_statements — статистика запросов (урок 21)
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=4", "-c", "max_replication_slots=4", "-c", "shared_preload_libraries=pg_stat_statements"]
     environment:
       POSTGRES_USER: dwh
       POSTGRES_PASSWORD: dwh

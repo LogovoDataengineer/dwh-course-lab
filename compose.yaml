@@ -256,6 +256,7 @@ services:
     working_dir: /lab/dbt/shop
     environment:
       DBT_PROFILES_DIR: /lab/dbt/shop
+      DBT_USE_COLORS: "false"
     ports: ["8089:8089"]
     volumes:
       - ./:/lab

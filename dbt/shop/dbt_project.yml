@@ -1,0 +1,14 @@
+name: dbt_shop
+version: "1.0.0"
+profile: dbt_shop
+model-paths: ["models"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+models:
+  dbt_shop:
+    staging:
+      +materialized: view
+      +schema: stg
+    marts:
+      +materialized: table
+      +schema: cdm

@@ -13,7 +13,7 @@
 ## Команды
 
 ```sh
-make up          # базовый стенд: PostgreSQL (5432), ClickHouse (8123), pgweb (8085)
+make up          # базовый стенд: PostgreSQL (5432), ClickHouse (8123), pgweb (8085 и 8086)
 make lesson-17   # поднять всё, что нужно уроку 17, и подготовить его данные
 make check-17    # проверить практику урока 17
 make psql        # консоль PostgreSQL, база shop (магазин «Полка»)
@@ -27,7 +27,8 @@ make reset CONFIRM=yes  # удалить данные и начать занов
 
 | Порт | Что открывается |
 |---|---|
-| 8085 | pgweb: таблицы и запросы PostgreSQL |
+| 8085 | pgweb: база сайта `shop` |
+| 8086 | pgweb: база хранилища `dwh` |
 | 8123 | ClickHouse, веб-консоль по адресу `/play` (пользователь и пароль `dwh`) |
 | 8080 | Kafka UI |
 | 9001 | MinIO Console (`dwhadmin` / `dwh-admin-123`) |

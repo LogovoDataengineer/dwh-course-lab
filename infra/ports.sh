@@ -2,7 +2,7 @@
 # Подсказка, какие строки вкладки Ports в VS Code открыть.
 echo
 echo 'Готово. Веб-интерфейсы — вкладка Ports в VS Code, значок глобуса в строке:'
-echo '  8085  PostgreSQL — pgweb        8123  ClickHouse (адрес /play, пользователь и пароль dwh)'
+echo '  8085  pgweb: база сайта shop     8086  pgweb: хранилище dwh     8123  ClickHouse (адрес /play, пользователь и пароль dwh)'
 case "${1:-}" in
   bi)      echo '  3000  Metabase (admin@dwh.local / dwh-admin-123)' ;;
   kafka)   echo '  8080  Kafka UI                  8083  Kafka Connect REST' ;;

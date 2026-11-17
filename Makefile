@@ -18,7 +18,7 @@ help:
 	@echo 'make reset CONFIRM=yes — удалить данные стенда и начать заново'
 
 up:
-	$(COMPOSE) up -d --wait postgres clickhouse pgweb
+	$(COMPOSE) up -d --wait postgres clickhouse pgweb pgweb-dwh
 	@bash infra/ports.sh base
 
 lesson-%:

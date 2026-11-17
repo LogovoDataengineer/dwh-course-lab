@@ -7,9 +7,10 @@
   },
   "remoteUser": "vscode",
   "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
-  "forwardPorts": [8085, 8123, 3000, 8080, 8083, 9001, 8090, 4040, 8088, 8089, 5432, 5433],
+  "forwardPorts": [8085, 8086, 8123, 3000, 8080, 8083, 9001, 8090, 4040, 8088, 8089, 5432, 5433],
   "portsAttributes": {
-    "8085": { "label": "PostgreSQL — pgweb" },
+    "8085": { "label": "pgweb — база сайта shop" },
+    "8086": { "label": "pgweb — хранилище dwh" },
     "8123": { "label": "ClickHouse (/play)" },
     "3000": { "label": "Metabase" },
     "8080": { "label": "Kafka UI" },

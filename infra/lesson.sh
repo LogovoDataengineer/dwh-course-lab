@@ -22,7 +22,7 @@ up() {  # поднять сервисы и дождаться их готовн�
   rm -f "$log"
 }
 echo "== Урок $N: базовые сервисы"
-up up -d --wait postgres clickhouse pgweb
+up up -d --wait postgres clickhouse pgweb pgweb-dwh
 if [ -n "$PROFILE" ]; then
   echo "== Урок $N: сервисы профиля $PROFILE (первый запуск скачивает образы, это несколько минут)"
   up --profile "$PROFILE" up -d --wait $SERVICES

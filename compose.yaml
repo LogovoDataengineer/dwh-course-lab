@@ -45,6 +45,15 @@ services:
       PGWEB_DATABASE_URL: postgres://dwh:dwh@postgres:5432/shop?sslmode=disable
     ports: ["8085:8081"]
 
+  # Та же веб-консоль для базы хранилища dwh (уроки 5–16; порт 8086)
+  pgweb-dwh:
+    image: sosedoff/pgweb:0.16.2
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      PGWEB_DATABASE_URL: postgres://dwh:dwh@postgres:5432/dwh?sslmode=disable
+    ports: ["8086:8081"]
+
   clickhouse:
     image: clickhouse/clickhouse-server:25.8
     environment:

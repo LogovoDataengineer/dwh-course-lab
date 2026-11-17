@@ -66,6 +66,7 @@ services:
     image: metabase/metabase:v0.55.6
     environment:
       JAVA_OPTS: -Xmx1g
+      MB_DB_FILE: /metabase-data/metabase.db   # настройки, вопросы и дашборды переживают перезапуск
       MB_SITE_LOCALE: ru
       MB_ANON_TRACKING_ENABLED: "false"
       MB_CHECK_FOR_UPDATES: "false"

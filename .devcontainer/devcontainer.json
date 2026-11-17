@@ -2,7 +2,8 @@
   "name": "DWH для дата-инженеров",
   "image": "mcr.microsoft.com/devcontainers/base:bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": { "moby": true }
+    "ghcr.io/devcontainers/features/docker-in-docker:2": { "moby": true },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
   },
   "remoteUser": "vscode",
   "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },

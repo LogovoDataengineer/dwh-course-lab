@@ -1,4 +1,5 @@
 -- Урок 3: отчёт директору «Полки» за 2025 год — три представления в схеме reports.
+SET client_min_messages = warning;
 CREATE SCHEMA IF NOT EXISTS reports;
 
 -- 1. Сводная по городам и месяцам: продажи, выручка и доля отмен (условная агрегация FILTER)

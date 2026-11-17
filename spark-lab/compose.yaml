@@ -1,7 +1,6 @@
 name: spark-tutorial
 x-spark: &spark
   image: spark-tutorial:3.5.6
-  build: .
   init: true
   volumes:
     - spark-events:/opt/spark-events
@@ -33,6 +32,7 @@ services:
       retries: 30
   notebook:
     <<: *spark
+    build: .
     hostname: notebook
     command: ["jupyter", "lab", "--config=/etc/jupyter/jupyter_server_config.py"]
     environment:

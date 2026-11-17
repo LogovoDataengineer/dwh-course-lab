@@ -1,0 +1,12 @@
+-- Урок 20, шаг 5 (ваш): предагрегаты для дашборда — таблица shop.sales_daily и материализованное представление.
+-- 1) Таблица shop.sales_daily на движке AggregatingMergeTree, ORDER BY (day, category), столбцы:
+--      day Date, category LowCardinality(String),
+--      revenue SimpleAggregateFunction(sum, Decimal(38, 2)),   -- выручку достаточно складывать
+--      buyers AggregateFunction(uniqHLL12, UInt32)             -- уникальных покупателей не сложить: храним состояние HyperLogLog
+-- 2) Материализованное представление shop.sales_daily_mv TO shop.sales_daily: на каждую вставку в shop.sales
+--    считает по вставленной пачке day = toDate(sold_at), category через словарь shop.products_dict,
+--    revenue = sum(amount), buyers = uniqHLL12State(customer_id).
+-- 3) Представление видит только НОВЫЕ вставки. Уже лежащие 20 миллионов строк перенесите в таблицу один раз
+--    (INSERT ... SELECT с теми же выражениями) — и только их, чтобы ничего не посчитать дважды.
+-- Выполнить: make ch F=practice/L20/sales_daily.sql     Проверить: make check-20
+CREATE TABLE shop.sales_daily ...

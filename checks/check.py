@@ -34,7 +34,7 @@ def ch(sql):
 
 
 def gp(sql, db="shop"):
-    out = run("greenplum", "su", "-", "gpadmin", "-c", f"psql -d {db} -AtX -v ON_ERROR_STOP=1 -c {sql!r}")
+    out = run("greenplum", "su", "-", "gpadmin", "-c", f"psql -d {db} -AtX -v ON_ERROR_STOP=1", stdin=sql)
     return [line.split("|") for line in out.splitlines() if line]
 
 

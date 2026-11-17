@@ -47,8 +47,15 @@ else
 	@$(COMPOSE) exec clickhouse clickhouse-client --user dwh --password dwh $(if $(Q),--format PrettyCompactMonoBlock -q "$(Q)",)
 endif
 
+# make gp — консоль Greenplum; make gp F=файл.sql — выполнить файл; make gp Q="SELECT 1"
 gp:
-	$(COMPOSE) exec greenplum su - gpadmin -c 'psql -d shop'
+ifdef F
+	@$(COMPOSE) exec -T greenplum su - gpadmin -c 'psql -d shop -v ON_ERROR_STOP=1 -f /lab/$(F)'
+else ifdef Q
+	@printf '%s\n' "$$Q" | $(COMPOSE) exec -T greenplum su - gpadmin -c 'psql -d shop'
+else
+	@$(COMPOSE) exec greenplum su - gpadmin -c 'psql -d shop'
+endif
 
 trino:
 	$(COMPOSE) exec trino trino $(if $(Q),--execute "$(Q)",)

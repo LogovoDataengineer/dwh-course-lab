@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# make lesson-NN: поднимает сервисы урока NN, останавливает тяжёлые сервисы других уроков
+# (в Codespace 16 ГБ памяти, всё сразу держать незачем) и готовит данные урока (lessons/LNN/setup.sh).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+N=$(printf '%02d' "$((10#${1:?номер урока}))")
+case "$N" in
+  17|18) PROFILE=kafka;   SERVICES="kafka connect kafka-ui" ;;
+  19)    PROFILE=gp;      SERVICES="greenplum" ;;
+  22|23|24) PROFILE=lake; SERVICES="minio spark trino" ;;
+  25)    PROFILE=airflow; SERVICES="airflow" ;;
+  *)     PROFILE="";      SERVICES="" ;;
+esac
+HEAVY="kafka connect kafka-ui greenplum minio spark trino airflow"
+stop=""
+for s in $HEAVY; do [[ " $SERVICES " == *" $s "* ]] || stop+=" $s"; done
+docker compose --profile kafka --profile gp --profile lake --profile airflow stop $stop >/dev/null 2>&1 || true
+echo "== Урок $N: базовые сервисы"
+docker compose up -d --wait postgres clickhouse pgweb
+if [ -n "$PROFILE" ]; then
+  echo "== Урок $N: сервисы профиля $PROFILE (первый запуск скачивает образы, это несколько минут)"
+  docker compose --profile "$PROFILE" up -d --wait $SERVICES
+  if [ "$PROFILE" = lake ]; then docker compose --profile lake run --rm minio-init; fi
+  if [ "$PROFILE" = airflow ]; then
+    # standalone придумывает пароль сам; для курса задаём учебный admin / admin
+    docker compose --profile airflow exec -T airflow airflow users reset-password -u admin -p admin >/dev/null 2>&1 \
+      || docker compose --profile airflow exec -T airflow airflow users create -u admin -p admin -r Admin -f Учебный -l Стенд -e admin@example.com >/dev/null
+  fi
+fi
+if [ -x "lessons/L$N/setup.sh" ]; then
+  echo "== Урок $N: данные урока"
+  "lessons/L$N/setup.sh"
+fi
+bash infra/ports.sh "$PROFILE"

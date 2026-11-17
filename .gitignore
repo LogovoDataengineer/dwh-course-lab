@@ -1,0 +1,3 @@
+.proxy-ca.pem
+.env
+practice/**/__pycache__/

@@ -1,0 +1,236 @@
+# Учебный стенд курса «DWH для дата-инженеров».
+# Базовые сервисы (PostgreSQL, ClickHouse, веб-консоль pgweb) работают всегда: make up.
+# Остальное включается профилями в своих уроках, команда make lesson-NN сама выбирает нужные:
+#   kafka    — Kafka, Kafka Connect с Debezium, Kafka UI          (уроки 17–18)
+#   gp       — Greenplum 6.27: мастер и 2 сегмента                 (урок 19)
+#   lake     — MinIO (S3), Spark 3.5 с Iceberg и Delta, Trino      (уроки 22–24)
+#   airflow  — Airflow 2.10                                         (урок 25)
+#   tools    — dbt для PostgreSQL (запускается командой make dbt)  (уроки 26–27)
+# Пароли учебные, стенд работает только внутри вашего Codespace.
+name: dwh
+
+x-pg-env: &pg-env
+  PGHOST: postgres
+  PGUSER: dwh
+  PGPASSWORD: dwh
+  PGDATABASE: shop
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    # wal_level=logical нужен Debezium (урок 17)
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=4", "-c", "max_replication_slots=4"]
+    environment:
+      POSTGRES_USER: dwh
+      POSTGRES_PASSWORD: dwh
+      POSTGRES_DB: shop
+    ports: ["5432:5432"]
+    volumes:
+      - ./data/shop.sql:/docker-entrypoint-initdb.d/01-shop.sql:ro
+      - ./infra/postgres/02-databases.sql:/docker-entrypoint-initdb.d/02-databases.sql:ro
+      - ./:/lab
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "dwh", "-d", "shop"]
+      interval: 3s
+      retries: 40
+
+  # Веб-консоль для PostgreSQL: таблицы, данные и запросы в браузере (порт 8085)
+  pgweb:
+    image: sosedoff/pgweb:0.16.2
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      PGWEB_DATABASE_URL: postgres://dwh:dwh@postgres:5432/shop?sslmode=disable
+    ports: ["8085:8081"]
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    environment:
+      CLICKHOUSE_USER: dwh
+      CLICKHOUSE_PASSWORD: dwh
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports: ["8123:8123", "9000:9000"]
+    volumes:
+      - ./:/lab
+      - ch-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user", "dwh", "--password", "dwh", "-q", "SELECT 1"]
+      interval: 3s
+      retries: 40
+
+  # --- Kafka и CDC (уроки 17–18) ---
+  kafka:
+    profiles: [kafka]
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+    volumes:
+      - ./:/lab
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 5s
+      retries: 40
+
+  connect:
+    profiles: [kafka]
+    image: quay.io/debezium/connect:3.0.8.Final
+    depends_on:
+      kafka: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: dwh-connect
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      HEAP_OPTS: -Xmx512m -Xms256m
+    ports: ["8083:8083"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors >/dev/null"]
+      interval: 5s
+      retries: 60
+
+  # Веб-интерфейс Kafka: топики, сообщения, группы потребителей, коннекторы (порт 8080)
+  kafka-ui:
+    profiles: [kafka]
+    image: provectuslabs/kafka-ui:v0.7.2
+    depends_on:
+      kafka: {condition: service_healthy}
+    environment:
+      KAFKA_CLUSTERS_0_NAME: dwh
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
+      JAVA_OPTS: -Xmx256m
+    ports: ["8080:8080"]
+
+  # --- Greenplum 6.27 (урок 19): мастер и 2 сегмента на одной машине ---
+  greenplum:
+    profiles: [gp]
+    image: woblerr/greenplum:6.27.1
+    hostname: gpmaster
+    shm_size: 1g
+    environment:
+      GREENPLUM_PASSWORD: dwh
+      GREENPLUM_DATABASE_NAME: shop
+    ports: ["5433:5432"]
+    volumes:
+      - ./:/lab
+      - gp-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "su - gpadmin -c 'psql -d shop -Atc \"select count(*) from gp_segment_configuration\"' 2>/dev/null | grep -q 3"]
+      interval: 5s
+      retries: 120
+
+  # --- Озеро и lakehouse (уроки 22–24) ---
+  minio:
+    profiles: [lake]
+    build: infra/minio
+    image: dwh-lab/minio:2025-10-15
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: dwhadmin
+      MINIO_ROOT_PASSWORD: dwh-admin-123
+    ports: ["9002:9000", "9001:9001"]
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 3s
+      retries: 40
+
+  minio-init:
+    profiles: [lake]
+    image: dwh-lab/minio:2025-10-15
+    depends_on:
+      minio: {condition: service_healthy}
+    entrypoint: ["sh", "-c", "mc alias set lake http://minio:9000 dwhadmin dwh-admin-123 >/dev/null && mc mb --ignore-existing lake/lake"]
+
+  # Spark 3.5 с Iceberg, Delta Lake и S3: задания запускаются командой make spark (UI задания — порт 4040)
+  spark:
+    profiles: [lake]
+    build: infra/spark
+    image: dwh-lab/spark:3.5.6
+    command: ["sleep", "infinity"]
+    environment:
+      <<: *pg-env
+      AWS_ACCESS_KEY_ID: dwhadmin
+      AWS_SECRET_ACCESS_KEY: dwh-admin-123
+      AWS_REGION: us-east-1
+    ports: ["4040:4040"]
+    volumes:
+      - ./:/lab
+    working_dir: /lab
+
+  # Trino: SQL поверх озера (Iceberg) и PostgreSQL одной командой (порт 8090)
+  trino:
+    profiles: [lake]
+    image: trinodb/trino:475
+    depends_on:
+      minio: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+    ports: ["8090:8080"]
+    volumes:
+      - ./infra/trino/catalog:/etc/trino/catalog:ro
+      - ./infra/trino/jvm.config:/etc/trino/jvm.config:ro
+      - ./:/lab
+    healthcheck:
+      test: ["CMD-SHELL", "trino --execute 'select 1' >/dev/null 2>&1"]
+      interval: 5s
+      retries: 60
+
+  # --- Airflow (урок 25) ---
+  airflow:
+    profiles: [airflow]
+    image: apache/airflow:2.10.5-python3.12
+    command: ["standalone"]
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /lab/airflow/dags
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+      AIRFLOW_CONN_SHOP_PG: postgres://dwh:dwh@postgres:5432/shop
+      AIRFLOW_CONN_SHOP_CH: http://dwh:dwh@clickhouse:8123
+    ports: ["8088:8080"]
+    volumes:
+      - ./:/lab
+      - airflow-home:/opt/airflow
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health | grep -q healthy"]
+      interval: 5s
+      retries: 80
+
+  # --- dbt (уроки 26–27): docker compose run --rm dbt <команда>, обёртка — make dbt ARGS="..." ---
+  dbt:
+    profiles: [tools]
+    image: ghcr.io/dbt-labs/dbt-postgres:1.9.0
+    working_dir: /lab/dbt/shop
+    environment:
+      DBT_PROFILES_DIR: /lab/dbt/shop
+    ports: ["8089:8089"]
+    volumes:
+      - ./:/lab
+
+volumes:
+  pg-data:
+  ch-data:
+  minio-data:
+  airflow-home:
+  gp-data:

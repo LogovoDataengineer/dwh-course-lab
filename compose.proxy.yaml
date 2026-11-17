@@ -1,0 +1,12 @@
+# Только для сборки за прокси с собственным сертификатом (не нужен в Codespaces):
+#   cp /путь/к/ca.pem .proxy-ca.pem && docker compose -f compose.yaml -f compose.proxy.yaml build
+services:
+  spark:
+    build:
+      secrets: [proxy_ca]
+  minio:
+    build:
+      secrets: [proxy_ca]
+secrets:
+  proxy_ca:
+    file: ${PROXY_CA_FILE:-.proxy-ca.pem}

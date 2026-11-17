@@ -1,0 +1,29 @@
+{
+  "name": "DWH для дата-инженеров",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": { "moby": true }
+  },
+  "remoteUser": "vscode",
+  "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
+  "forwardPorts": [8085, 8123, 8080, 8083, 9001, 8090, 4040, 8088, 8089, 5432, 5433],
+  "portsAttributes": {
+    "8085": { "label": "PostgreSQL — pgweb" },
+    "8123": { "label": "ClickHouse (/play)" },
+    "8080": { "label": "Kafka UI" },
+    "8083": { "label": "Kafka Connect REST" },
+    "9001": { "label": "MinIO Console" },
+    "8090": { "label": "Trino UI" },
+    "4040": { "label": "Spark UI" },
+    "8088": { "label": "Airflow" },
+    "8089": { "label": "dbt docs" },
+    "5432": { "label": "PostgreSQL" },
+    "5433": { "label": "Greenplum" }
+  },
+  "postCreateCommand": "make up",
+  "customizations": {
+    "vscode": {
+      "extensions": ["mtxr.sqltools", "mtxr.sqltools-driver-pg"]
+    }
+  }
+}

@@ -232,12 +232,14 @@ services:
     environment:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /lab/airflow/dags
+      AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "20"   # новые файлы DAG подхватываются за 20 секунд, а не за 5 минут
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
       _AIRFLOW_WWW_USER_USERNAME: admin
       _AIRFLOW_WWW_USER_PASSWORD: admin
       AIRFLOW_CONN_SHOP_PG: postgres://dwh:dwh@postgres:5432/shop
       AIRFLOW_CONN_SHOP_CH: http://dwh:dwh@clickhouse:8123
+      AIRFLOW_CONN_DWH_PG: postgres://dwh:dwh@postgres:5432/dwh
     ports: ["8088:8080"]
     volumes:
       - ./:/lab

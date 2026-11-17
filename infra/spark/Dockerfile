@@ -9,6 +9,7 @@ ADD --chmod=644 ${MAVEN}/org/apache/iceberg/iceberg-aws-bundle/1.9.2/iceberg-aws
 ADD --chmod=644 ${MAVEN}/io/delta/delta-spark_2.12/3.3.2/delta-spark_2.12-3.3.2.jar /opt/spark/jars/
 ADD --chmod=644 ${MAVEN}/io/delta/delta-storage/3.3.2/delta-storage-3.3.2.jar /opt/spark/jars/
 ADD --chmod=644 ${MAVEN}/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar /opt/spark/jars/
+ADD --chmod=644 ${MAVEN}/org/apache/spark/spark-avro_2.12/3.5.6/spark-avro_2.12-3.5.6.jar /opt/spark/jars/
 # Сертификат прокси нужен только за корпоративным прокси (compose.proxy.yaml); в Codespaces его нет.
 RUN --mount=type=secret,id=proxy_ca,required=false \
     pip install --no-cache-dir $(test -s /run/secrets/proxy_ca && echo --cert /run/secrets/proxy_ca) \

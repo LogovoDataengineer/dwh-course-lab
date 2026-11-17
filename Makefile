@@ -1,7 +1,7 @@
 # Команды стенда курса «DWH для дата-инженеров». Список: make help
 SHELL := /bin/bash
 COMPOSE := docker compose
-ALL_PROFILES := --profile kafka --profile gp --profile lake --profile airflow --profile tools
+ALL_PROFILES := --profile bi --profile kafka --profile gp --profile lake --profile airflow --profile tools
 
 .PHONY: help up status psql ch gp trino spark dbt down reset
 help:

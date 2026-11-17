@@ -1,6 +1,7 @@
 # Учебный стенд курса «DWH для дата-инженеров».
 # Базовые сервисы (PostgreSQL, ClickHouse, веб-консоль pgweb) работают всегда: make up.
 # Остальное включается профилями в своих уроках, команда make lesson-NN сама выбирает нужные:
+#   bi       — Metabase: отчёты и дашборды                          (уроки 3–4)
 #   kafka    — Kafka, Kafka Connect с Debezium, Kafka UI          (уроки 17–18)
 #   gp       — Greenplum 6.27: мастер и 2 сегмента                 (урок 19)
 #   lake     — MinIO (S3), Spark 3.5 с Iceberg и Delta, Trino      (уроки 22–24)
@@ -58,6 +59,23 @@ services:
       test: ["CMD", "clickhouse-client", "--user", "dwh", "--password", "dwh", "-q", "SELECT 1"]
       interval: 3s
       retries: 40
+
+  # --- BI (уроки 3–4): Metabase — отчёты и дашборды поверх базы (порт 3000) ---
+  metabase:
+    profiles: [bi]
+    image: metabase/metabase:v0.55.6
+    environment:
+      JAVA_OPTS: -Xmx1g
+      MB_SITE_LOCALE: ru
+      MB_ANON_TRACKING_ENABLED: "false"
+      MB_CHECK_FOR_UPDATES: "false"
+    ports: ["3000:3000"]
+    volumes:
+      - metabase-data:/metabase-data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health | grep -q ok"]
+      interval: 5s
+      retries: 80
 
   # --- Kafka и CDC (уроки 17–18) ---
   kafka:
@@ -234,3 +252,4 @@ volumes:
   minio-data:
   airflow-home:
   gp-data:
+  metabase-data:

@@ -1,3 +1,4 @@
 .proxy-ca.pem
 .env
 practice/**/__pycache__/
+__pycache__/

@@ -15,12 +15,17 @@ HEAVY="kafka connect kafka-ui greenplum minio spark trino airflow"
 stop=""
 for s in $HEAVY; do [[ " $SERVICES " == *" $s "* ]] || stop+=" $s"; done
 docker compose --profile kafka --profile gp --profile lake --profile airflow stop $stop >/dev/null 2>&1 || true
+up() {  # поднять сервисы и дождаться их готовности; подробный журнал — только при ошибке
+  local log; log=$(mktemp)
+  if ! docker compose "$@" >"$log" 2>&1; then cat "$log"; rm -f "$log"; exit 1; fi
+  rm -f "$log"
+}
 echo "== Урок $N: базовые сервисы"
-docker compose up -d --wait postgres clickhouse pgweb
+up up -d --wait postgres clickhouse pgweb
 if [ -n "$PROFILE" ]; then
   echo "== Урок $N: сервисы профиля $PROFILE (первый запуск скачивает образы, это несколько минут)"
-  docker compose --profile "$PROFILE" up -d --wait $SERVICES
-  if [ "$PROFILE" = lake ]; then docker compose --profile lake run --rm minio-init; fi
+  up --profile "$PROFILE" up -d --wait $SERVICES
+  if [ "$PROFILE" = lake ]; then up --profile lake run --rm minio-init; fi
   if [ "$PROFILE" = airflow ]; then
     # standalone придумывает пароль сам; для курса задаём учебный admin / admin
     docker compose --profile airflow exec -T airflow airflow users reset-password -u admin -p admin >/dev/null 2>&1 \
@@ -31,4 +36,6 @@ if [ -x "lessons/L$N/setup.sh" ]; then
   echo "== Урок $N: данные урока"
   "lessons/L$N/setup.sh"
 fi
+echo "== Работают:"
+docker compose --profile kafka --profile gp --profile lake --profile airflow ps --format '   {{.Service}}  {{.Status}}'
 bash infra/ports.sh "$PROFILE"

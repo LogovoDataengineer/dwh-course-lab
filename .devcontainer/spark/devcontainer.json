@@ -1,0 +1,20 @@
+{
+  "name": "Spark + Jupyter + History Server",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {"moby": true},
+    "ghcr.io/devcontainers/features/sshd:1": {}
+  },
+  "remoteUser": "vscode",
+  "hostRequirements": {"cpus": 4, "memory": "16gb", "storage": "32gb"},
+  "forwardPorts": [8888, 4040, 18080, 8080, 8081],
+  "portsAttributes": {
+    "8888": {"label": "JupyterLab — PySpark notebook", "onAutoForward": "silent"},
+    "4040": {"label": "Spark UI — текущее приложение", "onAutoForward": "silent"},
+    "18080": {"label": "Spark History Server", "onAutoForward": "silent"},
+    "8080": {"label": "Spark Master", "onAutoForward": "silent"},
+    "8081": {"label": "Spark Worker", "onAutoForward": "silent"}
+  },
+  "postCreateCommand": "make -C spark-lab up",
+  "customizations": {"vscode": {"extensions": ["ms-python.python", "ms-toolsai.jupyter"]}}
+}

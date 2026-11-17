@@ -1,0 +1,62 @@
+name: spark-tutorial
+x-spark: &spark
+  image: spark-tutorial:3.5.6
+  build: .
+  init: true
+  volumes:
+    - spark-events:/opt/spark-events
+    - ./:/opt/work
+    - spark-results:/opt/work/results
+
+services:
+  spark-master:
+    <<: *spark
+    hostname: spark-master
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "--host", "spark-master", "--port", "7077", "--webui-port", "8080"]
+    ports: ["127.0.0.1:8080:8080"]
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/json/')"]
+      interval: 5s
+      retries: 30
+  spark-worker:
+    <<: *spark
+    hostname: spark-worker
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "--cores", "2", "--memory", "4G", "--webui-port", "8081", "spark://spark-master:7077"]
+    depends_on:
+      spark-master: {condition: service_healthy}
+    ports: ["127.0.0.1:8081:8081"]
+    mem_limit: 5g
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/json/')"]
+      interval: 5s
+      retries: 30
+  notebook:
+    <<: *spark
+    hostname: notebook
+    command: ["jupyter", "lab", "--config=/etc/jupyter/jupyter_server_config.py"]
+    environment:
+      JUPYTER_TOKEN: ${SPARK_LAB_TOKEN:?Run make up first}
+    depends_on:
+      spark-worker: {condition: service_healthy}
+    ports: ["127.0.0.1:8888:8888", "127.0.0.1:4040:4040"]
+    mem_limit: 3g
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8888/login')"]
+      interval: 5s
+      retries: 30
+  history:
+    <<: *spark
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.history.HistoryServer"]
+    environment:
+      SPARK_HISTORY_OPTS: -Dspark.history.fs.logDirectory=file:/opt/spark-events -Dspark.history.fs.update.interval=2s -Dspark.history.ui.port=18080
+    ports: ["127.0.0.1:18080:18080"]
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18080/api/v1/applications')"]
+      interval: 5s
+      retries: 30
+
+volumes:
+  spark-events:
+  spark-results:

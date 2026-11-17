@@ -167,6 +167,17 @@ services:
       interval: 5s
       retries: 120
 
+  # Веб-консоль для Greenplum (урок 19, порт 8087): таблицы, запросы и планы в браузере
+  pgweb-gp:
+    profiles: [gp]
+    image: sosedoff/pgweb:0.16.2
+    depends_on:
+      greenplum: {condition: service_healthy}
+    environment:
+      PGWEB_DATABASE_URL: postgres://gpadmin:dwh@greenplum:5432/shop?sslmode=disable
+    ports: ["8087:8081"]
+    restart: on-failure
+
   # --- Озеро и lakehouse (уроки 22–24) ---
   minio:
     profiles: [lake]

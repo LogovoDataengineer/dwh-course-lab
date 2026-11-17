@@ -6,7 +6,7 @@ echo '  8085  pgweb: база сайта shop     8086  pgweb: хранилищ�
 case "${1:-}" in
   bi)      echo '  3000  Metabase (admin@dwh.local / dwh-admin-123)' ;;
   kafka)   echo '  8080  Kafka UI                  8083  Kafka Connect REST' ;;
-  gp)      echo '  5433  Greenplum (консоль: make gp)' ;;
+  gp)      echo '  8087  pgweb: Greenplum (база shop)   5433  Greenplum (консоль: make gp)' ;;
   lake)    echo '  9001  MinIO Console (dwhadmin / dwh-admin-123)   8090  Trino UI (любое имя)   4040  Spark UI (пока идёт задание)' ;;
   airflow) echo '  8088  Airflow (admin / admin)' ;;
 esac
